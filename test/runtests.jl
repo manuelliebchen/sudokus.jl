@@ -22,32 +22,41 @@ end
     N = T(9)
 
     r = Array{T}(undef, N*N)
-    list = zeros(T, N*N)
+    list = [zeros(Bool, N) for i=1:N, j=1:N]
     @test Sudokus.condenseNonZero!(r, list, N) == 0x000
 
-    list[2] = 7
+    list[2][7] = true
     @test Sudokus.condenseNonZero!(r, list, N) == 0x001
     @test r[1] == 2
 
-    list[2:5] .= 7
+    list[2][7] = true
+    list[3][7] = true
+    list[4][7] = true
+    list[5][7] = true
     @test Sudokus.condenseNonZero!(r, list, N) == 0x004
-    list[7:8] .= 5
+    list[7][5] = true
+    list[8][5] = true
     @test Sudokus.condenseNonZero!(r, list, N) == 0x006
     @test r[6] != 0x0000
 
 end
 
+@testset "selectTile" begin
+    sudoku = reshape(collect( 1:16), (4,4)) 
+
+    @test Sudokus.selectTile(1, 1, 2, sudoku) == [ 1, 5, 9, 13]
+    @test Sudokus.selectTile(2, 1, 2, sudoku) == [ 1, 2, 3, 4]
+    @test Sudokus.selectTile(3, 1, 2, sudoku) == [ 1 5; 2 6]
+
+    @test Sudokus.selectTile(1, 1, 1, 2, sudoku) == [ 1, 5, 9, 13]
+    @test Sudokus.selectTile(2, 1, 1, 2, sudoku) == [ 1, 2, 3, 4]
+    @test Sudokus.selectTile(3, 1, 1, 2, sudoku) == [ 1 5; 2 6]
+end
+
 @testset "discardPresen" begin
     N = UInt16(9)
     n = UInt16(sqrt(N))
-    init = collect(UInt16(1):N)
-
-    r = copy(init)
-    Sudokus.discardPresent!(r, UInt16.([1,2,3, 7])) 
-    @test 1 ∉ r
-    @test 3 ∉ r
-    @test 7 ∉ r
-    @test 4 ∈ r
+    init = ones(Bool, N)
 
     sudoku = [ 4 8 3 9 2 1 6 5 7
                9 6 7 3 4 5 8 2 1

@@ -143,6 +143,28 @@ function check(sudoku::AbstractMatrix{T}, n::T, cache::AbstractArray{T}) where T
     true
 end
 
+"""
+    function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where T <: Unsigned
+
+Swaps values of `a` and `b` in place.
+"""
+function swap!(a::AbstractArray{T}, b::AbstractArray{T}) where T <: Unsigned
+    for (i,v) in enumerate(a)
+        a[i] = b[i]
+        b[i] = v
+    end
+end
+
+"""
+    function swap!(output::AbstractArray{T}, order::AbstractArray{NTuple{2, U}}, input::AbstractArray{T}) where {T, U}
+
+Swaps values of `intput` to `output` in order `order`.
+"""
+function swap!(output::AbstractArray{T}, order::AbstractArray{U}, input::AbstractArray{T}) where {T, U}
+    for i in 1:length(input)
+        copy!(output[i], input[order[i]])
+    end
+end
 
 """
     function printSudoku(sudoku::Array{T}) where T <: Unsigned

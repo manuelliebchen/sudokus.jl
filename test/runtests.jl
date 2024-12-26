@@ -3,6 +3,21 @@ using Sudokus
 using Test
 using Random
 
+@testset "swap" begin
+    N = 0x09
+    T = UInt8
+
+    a = rand(T, N)
+    b = rand(T, N)
+
+    a_copy = copy(a)
+    b_copy = copy(b)
+    Sudokus.swap!(a,b)
+
+    @test a == b_copy
+    @test b == a_copy
+end
+
 @testset "countZeros" begin
     a = zeros(UInt8, 10)
     @test Sudokus.countZeros(a) == 10
@@ -179,6 +194,18 @@ end
     sudoku_copy = solve(sudoku)
     @test Sudokus.countZeros(sudoku_copy) == 0
 
-    sudoku = generate(N, UInt(30))
-    @test Sudokus.countZeros(sudoku) == 51
+    sudoku = generateGrid(N)
+    sud = removeEntries(sudoku, UInt(32))
+    @test Sudokus.countZeros(sud) == 49
+    @test solve(sud) == sudoku
+
+    reshuffled = shuffleSudoku(sud)
+    @test uniquelySolvable(reshuffled)
+    @test Sudokus.countZeros(reshuffled) == 49
+
+    N = 0x04
+    sudoku = generateGrid(N)
+    sud = removeEntries(sudoku, UInt(4))
+    @test Sudokus.countZeros(sud) == 12
+    @test solve(sud) == sudoku
 end

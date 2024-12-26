@@ -4,12 +4,88 @@ using Random
 
 include("Utilities.jl")
 
+
+"""
+    function shuffleSudoku!(sudoku::AbstractMatrix{T}) where T <: Unsigned
+
+Shuffles Sudoku around with only equivalent transformations e.g. swapping numbers, swapping {rows,columns} in a block, swapping {rows,columns} of blocks and transposing.
+"""
+function shuffleSudoku!(sudoku::AbstractMatrix{T}) where T <: Unsigned
+    N = T(size(sudoku, 1))
+    n = T(sqrt(N))
+
+    # Shuffel Numbers 
+    number_swap = collect(T, 1:N)
+    shuffle!(number_swap)
+    pairs = [number_swap[i]=>number_swap[i+1] for i in 1:length(number_swap)-1]
+    push!(pairs, number_swap[end]=>number_swap[1])
+    replace!(sudoku, pairs...)
+
+    sub = copy(sudoku)
+
+    in_view = Array{AbstractArray}(undef, n)
+    o = collect(T, 1:n)
+    out_view = Array{AbstractArray}(undef, n)
+
+    # Shuffel Rows in Blocks 
+    for i in 0:n-1
+        for j in 1:n
+            in_view[j] = view(sudoku, i*n + j,:)
+            out_view[j] = view(sub, i*n + j,:)
+        end
+        shuffle!(o)
+        swap!(out_view, o, in_view)
+        copy!(sudoku, sub)
+        
+        for j in 1:n
+            in_view[j] = view(sudoku, :, i*n + j)
+            out_view[j] = view(sub, :, i*n + j)
+        end
+        shuffle!(o)
+        swap!(out_view, o, in_view)
+        copy!(sudoku, sub)
+    end
+
+    # Shuffel Blocks 
+    for j in 1:n
+        in_view[j] = view(sudoku, :, (j-1)*n+1: j*n)
+        out_view[j] = view(sub, :, (j-1)*n+1: j*n)
+    end
+    shuffle!(o)
+    swap!(out_view, o, in_view)
+    copy!(sudoku, sub)
+
+    for j in 1:n
+        in_view[j] = view(sudoku, (j-1)*n+1: j*n, :)
+        out_view[j] = view(sub, (j-1)*n+1: j*n, :)
+    end
+    shuffle!(o)
+    swap!(out_view, o, in_view)
+    copy!(sudoku, sub)
+
+    # Transpose?
+    if rand(Bool)
+        sudoku = Matrix(sudoku')
+    end
+end
+
+"""
+    function shuffleSudoku(sudoku::AbstractMatrix{T}) where T <: Unsigned
+
+Shuffles Sudoku around with only equivalent transformations e.g. swapping numbers, swapping {rows,columns} in a block, swapping {rows,columns} of blocks and transposing.
+"""
+function shuffleSudoku(sudoku::AbstractMatrix{T}) where T <: Unsigned
+    su = copy(sudoku)
+    shuffleSudoku!(su)
+    su
+end
+
 """
     function removeEntries!(sudoku::Array{T}, clues::UInt) where T <: Unsigned
 
 Removes entries until the number of clues is equal to `clues`.
 """
-function removeEntries!(sudoku::Array{T}, clues::UInt) where T <: Unsigned
+function removeEntries!(sudoku::AbstractMatrix{T}, clues::UInt) where T <: Unsigned
     N = T(size(sudoku, 1))
 
     cordSystem = [(i,j) for i in T(1):N, j in T(1):N]
@@ -17,8 +93,6 @@ function removeEntries!(sudoku::Array{T}, clues::UInt) where T <: Unsigned
 
     sud_copy = copy(sudoku)
 
-    max_nz = 0
-    numCand = T(1)
     while true
         copy!(sud_copy, sudoku)
         copy!(remove_sequence, cordSystem)
@@ -48,7 +122,7 @@ end
 
 Removes entries until the number of clues is equal to `clues`.
 """
-function removeEntries(sudoku::Array{T}, clues::UInt) where T <: Unsigned
+function removeEntries(sudoku::AbstractMatrix{T}, clues::UInt) where T <: Unsigned
     sud = copy(sudoku)
     removeEntries!(sud, clues)
     sud
@@ -61,18 +135,17 @@ Solves a sudoku in-place replacing all zero entries.
 
 Throws ArgumentError when sudoku is not uniquely solvable.
 """
-function solve!(sudoku::Matrix{T}) where T <: Unsigned
+function solve!(sudoku::AbstractMatrix{T}) where T <: Unsigned
     N = T(size(sudoku, 1))
     n = T(sqrt(N))
 
     cordSystem = [(i,j) for i in T(1):N, j in T(1):N]
 
-    # cand = [zeros(Bool, N) for i = 1:N, j = 1:N]
     cand = [zeros(Bool, N) for n = 1:N]
     cord_cand = zeros(Bool, N)
 
     last_nz = countZeros(sudoku)
-    while true
+    while last_nz != 0
         for r = T(1):3, t = T(1):N
             cords = selectTile(r, t, n, cordSystem)
             for (ic, c) in enumerate(cords)
@@ -93,17 +166,12 @@ function solve!(sudoku::Matrix{T}) where T <: Unsigned
             end
         end
         nz = countZeros(sudoku)
-        if nz == 0
-            last_nz = nz
-            break
-        end
         if last_nz == nz
             break
         end
         last_nz =nz
     end
     if last_nz > 0
-        # printSudoku(sudoku)
         throw(ArgumentError("Sudoku has no unique solution"))
     end
 end
@@ -115,10 +183,24 @@ Solves a sudoku in-place replacing all zero entries.
 
 Throws ArgumentError when sudoku is not uniquely solvable.
 """
-function solve(sudoku::Matrix{T}) where T <: Unsigned
+function solve(sudoku::AbstractMatrix{T}) where T <: Unsigned
     sud = copy(sudoku)
     solve!(sud)
     sud
+end
+
+"""
+    function uniquelySolvable(sudoku::Array{T}) where T <: Unsigned
+
+Tests whether `sudoku` is a uniquely solvable Sudoku.
+"""
+function uniquelySolvable(sudoku::AbstractMatrix{T}) where T <: Unsigned
+    try
+        solve(sudoku)
+        return true
+    catch
+    end
+    false
 end
 
 """
@@ -177,6 +259,6 @@ function generate(N::T, num_clues::UInt) where T <: Unsigned
     sudoku
 end
 
-export generate, generateGrid, removeEntries!, removeEntries, solve!, solve, printSudoku, readSudoku
+export generate, generateGrid, shuffleSudoku, shuffleSudoku!, removeEntries!, removeEntries, solve!, solve, printSudoku, readSudoku, uniquelySolvable
 
 end

@@ -79,7 +79,7 @@ function solve!(sudoku::Matrix{T}) where T <: Unsigned
                 fill!(cand[ic], true)
                 discardPresent!(cand[ic], c..., T(n), sudoku)
                 if sum(cand[ic]) == 1
-                    sudoku[cords[ic]...] = firstNZ(cand[ ic])
+                    sudoku[cords[ic]...] = firstNonZero(cand[ ic])
                 end
             end
             for in in 1:N
@@ -88,7 +88,7 @@ function solve!(sudoku::Matrix{T}) where T <: Unsigned
                     cord_cand[ic] = cand[ic][in]
                 end
                 if sum(cord_cand) == 1
-                    sudoku[cords[firstNZ(cord_cand)]...] = in
+                    sudoku[cords[firstNonZero(cord_cand)]...] = in
                 end
             end
         end
@@ -160,8 +160,8 @@ function generateGrid(N::T) where T <: Unsigned
             end
         end 
     end
-    
-    return sudoku
+
+    sudoku
 end
 
 """

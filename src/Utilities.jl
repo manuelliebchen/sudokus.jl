@@ -24,7 +24,12 @@ function reject!(candidates::AbstractArray{T}, present::AbstractArray{Bool}) whe
     end
 end
 
-function firstNZ(vec::Vector{Bool})
+"""
+    function firstNonZero(vec::Vector{Bool})
+
+Returns index of first non-zero element in `vec`.
+"""
+function firstNonZero(vec::AbstractVector{Bool})
     for (i, v) in enumerate(vec)
         if v
             return i
@@ -98,25 +103,6 @@ function gotMultiple(list::AbstractArray{T}, cache::AbstractArray{T}) where T <:
         end
     end
     false
-end
-
-"""
-    function condenseNonZero!(cache::Array{T}, list::Array{T}, N::T) where T <: Unsigned
-
-Writes indices of non zero entries of `list` sequencialy to `cache`. 
-
-Returns index of last non zero entry in `cache`
-"""
-function condenseNonZero!(cache::AbstractArray{T}, list::AbstractArray{AbstractVector{Bool}}, N::T) where T <: Unsigned
-    j = T(0)
-    fill!(cache, T(0))
-    for (i,v) in enumerate(list)
-        if sum(v) == 1
-            j += 1
-            cache[j] = i
-        end
-    end
-    j
 end
 
 """
@@ -212,8 +198,12 @@ function printSudoku(sudoku::AbstractMatrix{T}) where T <: Unsigned
     printSudoku(stdout::IO, sudoku)
 end
 
+"""
+    function readSudoku(string)
 
-function readSudoku(string)
+Reads Sudoku from string of format of [`printSudoku`](@ref).
+"""
+function readSudoku(string::String)
     string = replace(string, "+"=>"", "-"=>"", "|"=>" ", "."=>"0", "\n\n"=>"\n", "\n"=>"",)
     string = replace(string, "   "=>" ", "    "=>" ")
     sudoku = parse.(UInt, filter(!isempty,  split(string, ' ')))

@@ -3,6 +3,62 @@ using Sudokus
 using Test
 using Random
 
+@testset "countZeros" begin
+    a = zeros(UInt8, 10)
+    @test Sudokus.countZeros(a) == 10
+
+    a[1:3] .= 1
+    @test Sudokus.countZeros(a) == 7
+
+    a[5:7] .= 1
+    @test Sudokus.countZeros(a) == 4
+
+    a[9] = 1
+    @test Sudokus.countZeros(a) == 3
+end
+
+@testset "reject!" begin
+    N = 0x09
+    T = UInt8
+    candidates = collect(T, 1:N)
+    init = copy(candidates)
+    Sudokus.reject!(candidates, ones(Bool, N))
+    @test init == candidates
+
+    r = rand(Bool, N)
+    _sum = sum(r)
+    Sudokus.reject!(candidates, r)
+    @test Sudokus.countZeros(candidates) == N - _sum
+
+    Sudokus.reject!(candidates, zeros(Bool, N))
+    @test candidates == zeros(T, N)
+end
+
+@testset "firstNonZero" begin
+    N = 0x09
+    T = Bool
+
+    @test Sudokus.firstNonZero(zeros(T, N)) == 0
+    @test Sudokus.firstNonZero(ones(T, N)) == 1
+
+    r = zeros(T, N)
+    r[3] = 1
+    @test Sudokus.firstNonZero(r) == 3
+end
+
+
+@testset "selectTile" begin
+    sudoku = reshape(collect( 1:16), (4,4)) 
+
+    @test Sudokus.selectTile(1, 1, 2, sudoku) == [ 1, 5, 9, 13]
+    @test Sudokus.selectTile(2, 1, 2, sudoku) == [ 1, 2, 3, 4]
+    @test Sudokus.selectTile(3, 1, 2, sudoku) == [ 1 5; 2 6]
+
+    @test Sudokus.selectTile(1, 1, 1, 2, sudoku) == [ 1, 5, 9, 13]
+    @test Sudokus.selectTile(2, 1, 1, 2, sudoku) == [ 1, 2, 3, 4]
+    @test Sudokus.selectTile(3, 1, 1, 2, sudoku) == [ 1 5; 2 6]
+end
+
 @testset "gotMultiple" begin
     N = 9
     cache = zeros(UInt16, N)
@@ -15,42 +71,6 @@ using Random
     @test Sudokus.gotMultiple(UInt16.([7  3  6  6  0  0  0  0  0]), cache) == true
     @test Sudokus.gotMultiple(UInt16.([7  3  6  2  0  0  0  0  0]), cache) == false
 
-end
-
-@testset "condenseNonZero!" begin
-    T = UInt16
-    N = T(9)
-
-    r = Array{T}(undef, N*N)
-    list = [zeros(Bool, N) for i=1:N, j=1:N]
-    @test Sudokus.condenseNonZero!(r, list, N) == 0x000
-
-    list[2][7] = true
-    @test Sudokus.condenseNonZero!(r, list, N) == 0x001
-    @test r[1] == 2
-
-    list[2][7] = true
-    list[3][7] = true
-    list[4][7] = true
-    list[5][7] = true
-    @test Sudokus.condenseNonZero!(r, list, N) == 0x004
-    list[7][5] = true
-    list[8][5] = true
-    @test Sudokus.condenseNonZero!(r, list, N) == 0x006
-    @test r[6] != 0x0000
-
-end
-
-@testset "selectTile" begin
-    sudoku = reshape(collect( 1:16), (4,4)) 
-
-    @test Sudokus.selectTile(1, 1, 2, sudoku) == [ 1, 5, 9, 13]
-    @test Sudokus.selectTile(2, 1, 2, sudoku) == [ 1, 2, 3, 4]
-    @test Sudokus.selectTile(3, 1, 2, sudoku) == [ 1 5; 2 6]
-
-    @test Sudokus.selectTile(1, 1, 1, 2, sudoku) == [ 1, 5, 9, 13]
-    @test Sudokus.selectTile(2, 1, 1, 2, sudoku) == [ 1, 2, 3, 4]
-    @test Sudokus.selectTile(3, 1, 1, 2, sudoku) == [ 1 5; 2 6]
 end
 
 @testset "discardPresen" begin
@@ -138,20 +158,27 @@ end
 end
 
 @testset "Generate" begin
-    n = UInt16(3)
-    N = n*n
-    cache = zeros(UInt16, N)
+    N = UInt8(9)
 
-    sudoku = generateGrid(N)
-    @test Sudokus.check(sudoku, n, cache) == true
+    sudoku = readSudoku("
+        +-------+-------+-------+
+        | 8 . 9 | . . . | . 6 . |
+        | . 3 . | . . . | 9 7 4 |
+        | 6 7 . | 4 . . | 2 8 . |
+        +-------+-------+-------+
+        | 4 . . | 2 . . | . 5 . |
+        | . . 1 | 6 . . | 7 . 3 |
+        | 2 . . | 3 1 . | 8 4 . |
+        +-------+-------+-------+
+        | . 2 . | . . . | . . . |
+        | . . . | . . 5 | . 9 8 |
+        | 7 . 6 | . . . | . . . |
+        +-------+-------+-------+
+    ")
 
-    # sudoku_copy = copy(sudoku)
-    # removeEntries!(sudoku)
-    # @test Sudokus.check(sudoku, n, cache) == true
+    sudoku_copy = solve(sudoku)
+    @test Sudokus.countZeros(sudoku_copy) == 0
 
-    # sudoku = reshape(UInt8.([2 0 0 5 0 7 4 0 6 0 0 0 0 3 1 0 0 0 0 0 0 0 0 0 2 3 0 0 0 0 0 2 0 0 0 0 8 6 0 3 1 0 0 0 0 0 4 5 0 0 0 0 0 0 0 0 9 0 0 0 7 0 0 0 0 6 9 5 0 0 0 2 0 0 1 0 0 6 0 0 8]), N,N)
-
-    solve!(sudoku)
-    @test Sudokus.check(sudoku, n, cache) == true
-    @test reduce(&, sudoku_copy[:] .== sudoku[:])
+    sudoku = generate(N, UInt(30))
+    @test Sudokus.countZeros(sudoku) == 51
 end

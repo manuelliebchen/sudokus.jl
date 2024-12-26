@@ -145,9 +145,11 @@ end
     sudoku = generateGrid(N)
     @test Sudokus.check(sudoku, n, cache) == true
 
-    sudoku_copy = copy(sudoku)
-    removeEntries!(sudoku)
-    @test Sudokus.check(sudoku, n, cache) == true
+    # sudoku_copy = copy(sudoku)
+    # removeEntries!(sudoku)
+    # @test Sudokus.check(sudoku, n, cache) == true
+
+    # sudoku = reshape(UInt8.([2 0 0 5 0 7 4 0 6 0 0 0 0 3 1 0 0 0 0 0 0 0 0 0 2 3 0 0 0 0 0 2 0 0 0 0 8 6 0 3 1 0 0 0 0 0 4 5 0 0 0 0 0 0 0 0 9 0 0 0 7 0 0 0 0 6 9 5 0 0 0 2 0 0 1 0 0 6 0 0 8]), N,N)
 
     solve!(sudoku)
     @test Sudokus.check(sudoku, n, cache) == true

@@ -5,56 +5,52 @@ using Random
 include("Utilities.jl")
 
 """
-    function removeEntries!(sudoku::Array{T}) where T <: Unsigned
+    function removeEntries!(sudoku::Array{T}, clues::UInt) where T <: Unsigned
 
-Removes entries step by step only removing uniquely solvable.
+Removes entries until the number of clues is equal to `clues`.
 """
-function removeEntries!(sudoku::Array{T}) where T <: Unsigned
+function removeEntries!(sudoku::Array{T}, clues::UInt) where T <: Unsigned
     N = T(size(sudoku, 1))
-    n = T(sqrt(N))
-    
-    cand = [zeros(Bool, N) for i = 1:N, j = 1:N]
-    cache = zeros(T, N * N)
 
-    r = ones(Bool, N)
+    cordSystem = [(i,j) for i in T(1):N, j in T(1):N]
+    remove_sequence = Matrix{NTuple{2, T}}(undef, N, N)
 
+    sud_copy = copy(sudoku)
+
+    max_nz = 0
     numCand = T(1)
     while true
-        nnz = 0
-        for i in T(1):N, j in T(1):N
-            if sudoku[i, j] == 0
-                fill!(cand[i,j], false)
-                continue
+        copy!(sud_copy, sudoku)
+        copy!(remove_sequence, cordSystem)
+        shuffle!(remove_sequence)
+        nnz = N*N
+        for c in remove_sequence
+            tmp = sud_copy[c...]
+            sud_copy[c...] = 0
+            try
+                solve(sud_copy)
+                nnz -= 1
+                if nnz == clues
+                    copy!(sudoku, sud_copy)
+                    return
+                end
+            catch
+                sud_copy[c...] = tmp
+                break
             end
-            value = sudoku[i, j]
-            sudoku[i, j] = 0
-            fill!(r, true)
-            discardPresent!(r, i, j, n, sudoku)
-            if sum(r) == 1
-                copy!(cand[i, j], r)
-                nnz += 1 
-            end
-            sudoku[i, j] = value
         end
-
-        if nnz == 0
-            break
-        end
-        
-        numCand = condenseNonZero!(cache, cand, N)
-        sudoku[cache[(rand(T) % numCand)+1]] = 0
     end
-    sudoku
+    copy!(sudoku, sud_copy)
 end
 
 """
-    function removeEntries(sudoku::Array{T}) where T <: Unsigned
+    function removeEntries(sudoku::Array{T}, clues::UInt) where T <: Unsigned
 
-Removes entries step by step only removing uniquely solvable.
+Removes entries until the number of clues is equal to `clues`.
 """
-function removeEntries(sudoku::Array{T}) where T <: Unsigned
+function removeEntries(sudoku::Array{T}, clues::UInt) where T <: Unsigned
     sud = copy(sudoku)
-    removeEntries!(sud)
+    removeEntries!(sud, clues)
     sud
 end
 
@@ -107,7 +103,7 @@ function solve!(sudoku::Matrix{T}) where T <: Unsigned
         last_nz =nz
     end
     if last_nz > 0
-        printSudoku(stderr::IO, sudoku)
+        # printSudoku(sudoku)
         throw(ArgumentError("Sudoku has no unique solution"))
     end
 end
@@ -124,51 +120,6 @@ function solve(sudoku::Matrix{T}) where T <: Unsigned
     solve!(sud)
     sud
 end
-
-# """
-#     function solve!(sudoku::Array{T}) where T <: Unsigned
-
-# Solves a sudoku in-place replacing all zero entries.
-
-# Throws ArgumentError when sudoku is not uniquely solvable.
-# """
-# function solve!(sudoku::Array{T}) where T <: Unsigned
-#     N = T(size(sudoku, 1))
-#     n = T(sqrt(N))
-    
-#     cand = zeros(T, N, N)
-#     cache = zeros(T, N * N)
-
-#     init = collect(T, 1:N)
-#     r = Array{T}(undef, N)
-
-#     j = T(1)
-#     while true
-#         fill!(cand, T(0))
-#         for i in T(1):N, j in T(1):N
-#             if sudoku[i, j] != 0
-#                 continue
-#             end
-#             copy!(r, init)
-#             discardPresent!(r, i, j, n, sudoku)
-#             if countZeros(r) == N-1
-#                 cand[i, j] = sum(r)
-#             end
-#         end
-        
-#         if countZeros(cand) == N*N
-#             break
-#         end
-        
-#         j = condenseNonZero!(cache, cand, N)
-#         entry = rand(T) % j +1
-#         sudoku[cache[entry]] = cand[cache[entry]]
-#     end
-#     if countZeros(sudoku) > 0
-#         throw(ArgumentError("Sudoku has no unique solution"))
-#     end
-#     sudoku
-# end
 
 """
     function generateGrid(N::T) where T <: Unsigned
@@ -213,6 +164,19 @@ function generateGrid(N::T) where T <: Unsigned
     return sudoku
 end
 
-export generateGrid, randomPlacement, removeEntries!, removeEntries, solve!, solve, printSudoku
+"""
+    function generate(N::T, num_clues::UInt) where T <: Unsigned
+
+Generates Sudoku of size `N×N` with `num_clues` clues.
+
+Beware less them 27 clues will take a long time!
+"""
+function generate(N::T, num_clues::UInt) where T <: Unsigned
+    sudoku = generateGrid(N)
+    removeEntries!(sudoku, num_clues)
+    sudoku
+end
+
+export generate, generateGrid, removeEntries!, removeEntries, solve!, solve, printSudoku, readSudoku
 
 end

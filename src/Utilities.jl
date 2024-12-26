@@ -1,5 +1,9 @@
+"""
+    function countZeros(sudoku::AbstractArray{T}) where T <: Unsigned
 
-function countZeros(sudoku::Array{T}) where T <: Unsigned
+Counts the number of zero/empty entries in `sudoku`.
+"""
+function countZeros(sudoku::AbstractArray{T}) where T <: Unsigned
     sum = 0
     for s in sudoku
         if s == 0
@@ -10,11 +14,11 @@ function countZeros(sudoku::Array{T}) where T <: Unsigned
 end
 
 """
-    function reject!(candidates::Array{T}, present::Array{Bool}) where {T}
+    function reject!(candidates::AbstractArray{T}, present::AbstractArray{Bool}) where {T}
 
 Equivalent to `candidates .*= present` but faster.
 """
-function reject!(candidates::Array{T}, present::Array{Bool}) where {T}
+function reject!(candidates::AbstractArray{T}, present::AbstractArray{Bool}) where {T}
     for i in 1:length(candidates)
         candidates[i] *= present[i]
     end
@@ -30,7 +34,7 @@ function firstNZ(vec::Vector{Bool})
 end
 
 """
-    function selectTile(i::T, j::T, n::T, sudoku::Array{T}) where {T}
+    function selectTile(i::T, j::T, n::T, sudoku::AbstractArray{T}) where {T}
 
 Generates view on `sudoku` for all entries in tile of `i` in a `(n*n)^2` gird.
 
@@ -39,7 +43,7 @@ Generates view on `sudoku` for all entries in tile of `i` in a `(n*n)^2` gird.
  2. Columns
  3. Tiles
 """
-function selectTile(rule, i::T, n::T, sudoku::Matrix{U}) where {T, U}
+function selectTile(rule, i::T, n::T, sudoku::AbstractMatrix{U}) where {T, U}
     if rule == 1
         return view( sudoku, i, :)
     elseif rule == 2
@@ -53,7 +57,7 @@ function selectTile(rule, i::T, n::T, sudoku::Matrix{U}) where {T, U}
 end
 
 """
-    function selectTile(i::T, j::T, n::T, sudoku::Array{T}) where {T}
+    function selectTile(i::T, j::T, n::T, sudoku::AbstractMatrix{T}) where {T}
 
 Generates view on `sudoku` for all entries in tile of `i,j` in a `(n*n)^2` gird.
 
@@ -62,7 +66,7 @@ Generates view on `sudoku` for all entries in tile of `i,j` in a `(n*n)^2` gird.
  2. Columns
  3. Tiles
 """
-function selectTile(rule, i::T, j::T, n::T, sudoku::Matrix{U}) where {T, U}
+function selectTile(rule, i::T, j::T, n::T, sudoku::AbstractMatrix{U}) where {T, U}
     if rule == 1
         return view( sudoku, i, :)
     elseif rule == 2
@@ -82,7 +86,7 @@ Test if list has multiple entries of the same value.
 
 `@assert length(cache) >= maximum(list)`
 """
-function gotMultiple(list::Array{T}, cache::Array{T}) where T <: Unsigned
+function gotMultiple(list::AbstractArray{T}, cache::AbstractArray{T}) where T <: Unsigned
     fill!(cache, T(0))
     for i in list
         if i == 0
@@ -103,7 +107,7 @@ Writes indices of non zero entries of `list` sequencialy to `cache`.
 
 Returns index of last non zero entry in `cache`
 """
-function condenseNonZero!(cache::Array{T}, list::Array{Vector{Bool}}, N::T) where T <: Unsigned
+function condenseNonZero!(cache::AbstractArray{T}, list::AbstractArray{AbstractVector{Bool}}, N::T) where T <: Unsigned
     j = T(0)
     fill!(cache, T(0))
     for (i,v) in enumerate(list)
@@ -120,7 +124,7 @@ end
 
 Sets entries of `candidates` to zero if they are already present in row, column or tile of sudoku at `i`, `j`. `n` beeing the `sqrt(size(sudoku, 1))`.
 """
-function discardPresent!(candidates::Array{Bool}, i::T, j::T, n::T, sudoku::Array{T}) where T <: Unsigned
+function discardPresent!(candidates::AbstractArray{Bool}, i::T, j::T, n::T, sudoku::AbstractMatrix{T}) where T <: Unsigned
     if sudoku[i,j] != 0
         fill!(candidates, false)
         return
@@ -141,7 +145,7 @@ end
     
 Returns `true` if `sudoku` is a correct sudoku grid, zeros beeing ignored.
 """
-function check(sudoku::Array{T}, n::T, cache::Array{T}) where T <: Unsigned
+function check(sudoku::AbstractMatrix{T}, n::T, cache::AbstractArray{T}) where T <: Unsigned
     N = n * n
     for i in T(1):N
         if gotMultiple(selectTile(1, i, n, sudoku), cache) ||
@@ -159,7 +163,7 @@ end
 
 Renders sudoku to io.
 """
-function printSudoku(io, sudoku::Array{T}) where T <: Unsigned
+function printSudoku(io, sudoku::AbstractMatrix{T}) where T <: Unsigned
     N = T(size(sudoku, 1))
     n = T(sqrt(N))
 
@@ -199,15 +203,20 @@ function printSudoku(io, sudoku::Array{T}) where T <: Unsigned
     end
 end
 
+"""
+    function printSudoku(sudoku::Array{T}) where T <: Unsigned
+
+Renders sudoku to io.
+"""
+function printSudoku(sudoku::AbstractMatrix{T}) where T <: Unsigned
+    printSudoku(stdout::IO, sudoku)
+end
+
 
 function readSudoku(string)
     string = replace(string, "+"=>"", "-"=>"", "|"=>" ", "."=>"0", "\n\n"=>"\n", "\n"=>"",)
     string = replace(string, "   "=>" ", "    "=>" ")
     sudoku = parse.(UInt, filter(!isempty,  split(string, ' ')))
     N = UInt(sqrt(length(sudoku)))
-    sudoku = Matrix(transpose(reshape(sudoku, (N,N))))
-    sudoku
-    # @show string
-    # 
-
+    Matrix(transpose(reshape(sudoku, (N,N))))
 end
